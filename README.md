@@ -41,6 +41,12 @@
 | 降级机制 | 无 Key、20 秒超时、HTTP 错误、空响应都回退到本地模板 |
 | 隐私控制 | Key 只存本机 `localStorage`，页面提供“清除 Key”；请求时才会发送到你填写的接口 |
 
+## 截图
+
+<p align="center">
+  <img src="docs/images/screenshot-home.png" alt="AI 命理输入页截图" width="80%" />
+</p>
+
 ## 架构
 
 ```mermaid
