@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>天命玄机 · AI 命理</title>
+<script src="lunar.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Noto Serif SC', 'STSong', 'SimSun', serif;
+  background: #0a0a12;
+  color: #e8d5b7;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(120,60,20,0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(80,40,100,0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(60,80,120,0.1) 0%, transparent 50%);
+  pointer-events: none; z-index: 0;
+}
+
+.container {
+  position: relative; z-index: 1;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 48px 24px 40px;
+}
+
+header { text-align: center; margin-bottom: 40px; }
+
+header h1 {
+  font-size: 2.4rem; font-weight: 700; letter-spacing: 0.3em;
+  background: linear-gradient(135deg, #f0c27f, #e8d5b7, #d4a76a);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+
+header p { font-size: 0.9rem; color: #8a7a66; letter-spacing: 0.15em; }
+
+.input-section {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(228,196,139,0.15);
+  border-radius: 16px; padding: 28px; margin-bottom: 28px;
+  backdrop-filter: blur(10px);
+}
+
+.form-row { display: flex; gap: 12px; margin-bottom: 14px; }
+.form-group { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+
+label { font-size: 0.8rem; color: #a09080; letter-spacing: 0.1em; }
+
+input, select {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(228,196,139,0.2);
+  border-radius: 8px; padding: 10px 14px;
+  color: #e8d5b7; font-family: inherit; font-size: 0.95rem;
+  outline: none; transition: border-color 0.3s;
+}
+
+input:focus, select:focus { border-color: rgba(228,196,139,0.5); }
+select option { background: #1a1a2e; color: #e8d5b7; }
+
+.btn {
+  width: 100%; padding: 14px; border: none; border-radius: 10px;
+  font-family: inherit; font-size: 1.05rem; letter-spacing: 0.2em;
+  cursor: pointer;
+  background: linear-gradient(135deg, #8b6914, #c4973a);
+  color: #fff; transition: all 0.3s; margin-top: 6px;
+}
+
+.btn:hover {
+  background: linear-gradient(135deg, #a07818, #d4a740);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(196,151,58,0.3);
+}
+.btn:active { transform: translateY(0); }
+
+#results { display: none; animation: fadeIn 0.6s ease; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(228,196,139,0.12);
+  border-radius: 16px; padding: 24px; margin-bottom: 18px;
+  backdrop-filter: blur(10px);
+}
+
+.card h2 {
+  font-size: 1.05rem; color: #d4a76a; letter-spacing: 0.15em;
+  margin-bottom: 16px; padding-bottom: 10px;
+  border-bottom: 1px solid rgba(228,196,139,0.1);
+}
+
+/* K-Line chart */
+.kline-wrap {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(228,196,139,0.08);
+}
+
+#klineCanvas { display: block; width: 100%; cursor: crosshair; }
+
+.kline-legend {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  padding: 10px 16px;
+  background: rgba(0,0,0,0.2);
+  border-top: 1px solid rgba(228,196,139,0.06);
+}
+
+.kline-legend span {
+  font-size: 0.75rem; display: flex; align-items: center; gap: 5px;
+  color: #a09080; cursor: pointer; user-select: none; transition: opacity 0.2s;
+}
+
+.kline-legend span.off { opacity: 0.3; }
+
+.kline-legend i {
+  display: inline-block; width: 14px; height: 3px; border-radius: 2px;
+}
+
+.kline-tooltip {
+  display: none; position: absolute;
+  background: rgba(10,10,18,0.95);
+  border: 1px solid rgba(228,196,139,0.25);
+  border-radius: 10px; padding: 12px 16px;
+  font-size: 0.78rem; color: #c8b89a;
+  pointer-events: none; z-index: 10;
+  min-width: 160px; line-height: 1.7;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+}
+
+/* 大运 timeline */
+.dayun-scroll {
+  overflow-x: auto; padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dayun-scroll::-webkit-scrollbar { height: 4px; }
+.dayun-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 2px; }
+.dayun-scroll::-webkit-scrollbar-thumb { background: rgba(228,196,139,0.2); border-radius: 2px; }
+
+.dayun-row {
+  display: flex; gap: 0; min-width: max-content;
+}
+
+.dayun-item {
+  flex-shrink: 0; width: 72px; text-align: center; padding: 10px 4px;
+  border-right: 1px solid rgba(228,196,139,0.06);
+  transition: background 0.2s; cursor: default;
+}
+
+.dayun-item:last-child { border-right: none; }
+.dayun-item:hover { background: rgba(228,196,139,0.05); }
+
+.dayun-item.active {
+  background: rgba(228,196,139,0.08);
+  border-bottom: 2px solid #d4a76a;
+}
+
+.dayun-age { font-size: 0.65rem; color: #6a5a4a; margin-bottom: 4px; }
+.dayun-gz { font-size: 1.05rem; font-weight: 600; margin-bottom: 2px; }
+.dayun-wx { font-size: 0.65rem; color: #8a7a66; }
+.dayun-year { font-size: 0.6rem; color: #5a4a3a; margin-top: 2px; }
+
+/* Pillars */
+.pillars { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; text-align: center; }
+
+.pillar {
+  background: rgba(228,196,139,0.05);
+  border: 1px solid rgba(228,196,139,0.1);
+  border-radius: 12px; padding: 14px 6px;
+}
+
+.pillar-label { font-size: 0.7rem; color: #8a7a66; margin-bottom: 8px; letter-spacing: 0.1em; }
+.pillar-gan { font-size: 1.5rem; font-weight: 700; margin-bottom: 2px; }
+.pillar-zhi { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+.pillar-wuxing { font-size: 0.72rem; color: #a09080; }
+.pillar-nayin { font-size: 0.65rem; color: #7a6a56; margin-top: 3px; }
+.pillar-shishen { font-size: 0.65rem; color: #9a8a70; margin-top: 3px; }
+
+.wx-wood  { color: #6ecf6e; }
+.wx-fire  { color: #ef6c6c; }
+.wx-earth { color: #d4a76a; }
+.wx-metal { color: #e0e0e0; }
+.wx-water { color: #6ca8ef; }
+
+/* Wuxing bars */
+.wuxing-row { display: flex; align-items: center; margin-bottom: 7px; gap: 8px; }
+.wuxing-name { width: 24px; font-size: 0.85rem; text-align: center; }
+.wuxing-track { flex: 1; height: 7px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; }
+.wuxing-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+.wuxing-count { width: 20px; font-size: 0.75rem; color: #8a7a66; text-align: right; }
+.wuxing-lack { font-size: 0.8rem; color: #ef6c6c; margin-top: 8px; }
+
+/* Info grid */
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.info-item { display: flex; flex-direction: column; gap: 3px; }
+.info-label { font-size: 0.72rem; color: #8a7a66; letter-spacing: 0.1em; }
+.info-value { font-size: 0.98rem; }
+
+/* Dimension sections */
+.dim-section { margin-bottom: 20px; }
+.dim-section:last-child { margin-bottom: 0; }
+
+.dim-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 10px;
+}
+
+.dim-icon {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem;
+}
+
+.dim-title { font-size: 0.95rem; font-weight: 600; }
+
+.dim-score {
+  margin-left: auto; font-size: 0.8rem;
+  padding: 2px 10px; border-radius: 12px;
+  background: rgba(228,196,139,0.08);
+  border: 1px solid rgba(228,196,139,0.12);
+}
+
+.dim-body {
+  font-size: 0.88rem; line-height: 1.85; color: #b8a888;
+  padding-left: 36px;
+}
+
+.dim-body p { margin-bottom: 8px; }
+.dim-body strong { color: #d4a76a; font-weight: 600; }
+
+.dim-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+.tag {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 0.72rem; border: 1px solid rgba(228,196,139,0.15);
+  background: rgba(228,196,139,0.05);
+}
+
+.tag-good { border-color: rgba(110,207,110,0.3); color: #6ecf6e; background: rgba(110,207,110,0.05); }
+.tag-warn { border-color: rgba(239,108,108,0.3); color: #ef6c6c; background: rgba(239,108,108,0.05); }
+.tag-info { border-color: rgba(108,168,239,0.3); color: #6ca8ef; background: rgba(108,168,239,0.05); }
+
+/* Liuyear detail */
+.liuyear-detail {
+  background: rgba(0,0,0,0.15);
+  border: 1px solid rgba(228,196,139,0.08);
+  border-radius: 10px; padding: 14px; margin-top: 12px;
+  font-size: 0.82rem; line-height: 1.8;
+}
+
+.liuyear-detail h4 {
+  font-size: 0.85rem; color: #d4a76a; margin-bottom: 8px;
+}
+
+footer {
+  text-align: center; margin-top: 36px; padding-top: 18px;
+  border-top: 1px solid rgba(228,196,139,0.08);
+  font-size: 0.72rem; color: #5a4a3a; letter-spacing: 0.05em;
+}
+
+/* 综合解读 fortune */
+.fortune-text { font-size: 0.9rem; line-height: 1.9; color: #b8a888; }
+.fortune-text p { margin-bottom: 10px; }
+.fortune-text p:last-child { margin-bottom: 0; }
+.fortune-text strong { color: #d4a76a; font-weight: 600; }
+
+/* AI 综合解读 */
+.ai-badge {
+  display: inline-block; margin-left: 10px; padding: 3px 10px;
+  font-size: 0.7rem; font-weight: 400; letter-spacing: 0.08em;
+  border-radius: 999px; border: 1px solid rgba(228,196,139,0.25);
+  color: #8a7a66; vertical-align: 2px; white-space: nowrap;
+}
+.ai-badge-ok { color: #f0c27f; border-color: rgba(240,194,127,0.5); background: rgba(240,194,127,0.08); }
+.ai-badge-warn { color: #d4906a; border-color: rgba(212,144,106,0.45); background: rgba(212,144,106,0.08); }
+.ai-loading { display: flex; align-items: center; gap: 10px; padding: 8px 0; color: #8a7a66; font-size: 0.88rem; letter-spacing: 0.05em; }
+.ai-spin {
+  width: 16px; height: 16px; flex: none; border-radius: 50%;
+  border: 2px solid rgba(240,194,127,0.2); border-top-color: #f0c27f;
+  animation: aispin 0.9s linear infinite;
+}
+@keyframes aispin { to { transform: rotate(360deg); } }
+.ai-note { margin-top: 10px; font-size: 0.76rem; line-height: 1.7; color: #8a7a66; }
+.ai-actions { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+.ai-btn {
+  font-family: inherit; font-size: 0.8rem; letter-spacing: 0.06em; cursor: pointer;
+  padding: 7px 14px; border-radius: 8px; transition: background 0.2s;
+  background: rgba(240,194,127,0.12); color: #f0c27f;
+  border: 1px solid rgba(240,194,127,0.35);
+}
+.ai-btn:hover { background: rgba(240,194,127,0.22); }
+.ai-btn-ghost { background: transparent; color: #8a7a66; border-color: rgba(228,196,139,0.18); }
+.ai-btn-ghost:hover { background: rgba(255,255,255,0.04); }
+.ai-config {
+  margin-top: 16px; padding: 14px 16px;
+  border: 1px dashed rgba(228,196,139,0.2); border-radius: 10px;
+}
+.ai-config-tip { font-size: 0.74rem; line-height: 1.7; color: #8a7a66; margin-bottom: 12px; }
+.ai-config-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.ai-config-row label { flex: none; width: 68px; font-size: 0.78rem; color: #a08d75; letter-spacing: 0.05em; }
+.ai-config-row input {
+  flex: 1; padding: 6px 10px; font-family: inherit; font-size: 0.8rem;
+  color: #e8d5b7; background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(228,196,139,0.18); border-radius: 6px; outline: none;
+}
+.ai-config-row input:focus { border-color: rgba(240,194,127,0.5); }
+.ai-config-actions { margin-top: 12px; }
+.ai-config-msg { margin-left: 10px; font-size: 0.76rem; color: #6ecf6e; }
+
+@media (max-width: 500px) {
+  .container { padding: 32px 14px 24px; }
+  header h1 { font-size: 1.8rem; }
+  .pillars { grid-template-columns: repeat(2,1fr); }
+  .info-grid { grid-template-columns: 1fr; }
+  .dim-body { padding-left: 0; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>天命玄机</h1>
+    <p>输入生辰 &middot; 洞悉命理 &middot; 纵览一生</p>
+  </header>
+
+  <div class="input-section">
+    <div class="form-row">
+      <div class="form-group">
+        <label>出生日期</label>
+        <input type="date" id="birthDate" value="1995-06-15">
+      </div>
+      <div class="form-group">
+        <label>出生时辰</label>
+        <select id="birthHour">
+          <option value="6" selected>午时 (11:00-13:00)</option>
+          <option value="0">子时 (23:00-01:00)</option>
+          <option value="1">丑时 (01:00-03:00)</option>
+          <option value="2">寅时 (03:00-05:00)</option>
+          <option value="3">卯时 (05:00-07:00)</option>
+          <option value="4">辰时 (07:00-09:00)</option>
+          <option value="5">巳时 (09:00-11:00)</option>
+          <option value="7">未时 (13:00-15:00)</option>
+          <option value="8">申时 (15:00-17:00)</option>
+          <option value="9">酉时 (17:00-19:00)</option>
+          <option value="10">戌时 (19:00-21:00)</option>
+          <option value="11">亥时 (21:00-23:00)</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>性别</label>
+        <select id="gender">
+          <option value="1">男</option>
+          <option value="0">女</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn" onclick="calculate()">开始推算</button>
+  </div>
+
+  <div id="results">
+    <!-- K-Line chart -->
+    <div class="card">
+      <h2>人生运势 K 线</h2>
+      <div class="kline-wrap">
+        <canvas id="klineCanvas" height="320"></canvas>
+        <div class="kline-tooltip" id="klineTip"></div>
+        <div class="kline-legend" id="klineLegend"></div>
+      </div>
+    </div>
+
+    <!-- 大运 -->
+    <div class="card">
+      <h2>大运总览</h2>
+      <div class="dayun-scroll"><div class="dayun-row" id="dayunRow"></div></div>
+      <div class="liuyear-detail" id="liuyearDetail" style="display:none"></div>
+    </div>
+
+    <!-- 四柱八字 -->
+    <div class="card">
+      <h2>四柱八字</h2>
+      <div class="pillars" id="pillars"></div>
+    </div>
+
+    <!-- 五行 -->
+    <div class="card">
+      <h2>五行分布</h2>
+      <div id="wuxingBar"></div>
+    </div>
+
+    <!-- 基本信息 -->
+    <div class="card">
+      <h2>基本信息</h2>
+      <div class="info-grid" id="basicInfo"></div>
+    </div>
+
+    <!-- 事业 -->
+    <div class="card">
+      <h2>事业运势</h2>
+      <div id="careerSection"></div>
+    </div>
+
+    <!-- 姻缘 -->
+    <div class="card">
+      <h2>姻缘感情</h2>
+      <div id="loveSection"></div>
+    </div>
+
+    <!-- 财运 -->
+    <div class="card">
+      <h2>财运分析</h2>
+      <div id="wealthSection"></div>
+    </div>
+
+    <!-- 健康 -->
+    <div class="card">
+      <h2>健康养生</h2>
+      <div id="healthSection"></div>
+    </div>
+
+    <!-- 综合命理 -->
+    <div class="card">
+      <h2>综合命理解读<span class="ai-badge" id="aiBadge">本地解读</span></h2>
+      <div class="fortune-text" id="fortuneText"></div>
+      <div class="ai-note" id="aiNote" style="display:none"></div>
+      <div class="ai-actions">
+        <button class="ai-btn" id="aiRegenBtn" style="display:none" onclick="regenerateAI()">↻ 重新生成</button>
+        <button class="ai-btn ai-btn-ghost" onclick="toggleAiConfig()">⚙ AI 配置</button>
+      </div>
+      <div class="ai-config" id="aiConfig" style="display:none">
+        <p class="ai-config-tip">接入任意 OpenAI 兼容接口（默认 DeepSeek）。API Key 仅保存在本机浏览器，不上传服务器；生成超过 12 秒无响应时自动降级为本地模板解读。</p>
+        <div class="ai-config-row"><label>接口地址</label><input id="cfgBase" placeholder="https://api.deepseek.com"></div>
+        <div class="ai-config-row"><label>API Key</label><input id="cfgKey" type="password" placeholder="sk-..."></div>
+        <div class="ai-config-row"><label>模型</label><input id="cfgModel" placeholder="deepseek-chat"></div>
+        <div class="ai-config-actions"><button class="ai-btn" onclick="saveAiConfig()">保存并生成</button><span class="ai-config-msg" id="aiCfgMsg"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Vibe Coding Demo &middot; 八字引擎基于 <a href="https://github.com/6tail/lunar-javascript" style="color:#8a7a66" target="_blank">lunar-javascript</a> 开源库 &middot; 综合解读由大模型实时生成（超时自动降级本地模板） &middot; 仅供娱乐
+  </footer>
+</div>
+
+<script>
+const WX_MAP = { '木': 'wx-wood', '火': 'wx-fire', '土': 'wx-earth', '金': 'wx-metal', '水': 'wx-water' };
+const WX_CLR = { '木': '#6ecf6e', '火': '#ef6c6c', '土': '#d4a76a', '金': '#c0c0c0', '水': '#6ca8ef' };
+const HOUR_MAP = [23, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21];
+const TIAN_GAN = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const DI_ZHI = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+const GAN_WX = {'甲':'木','乙':'木','丙':'火','丁':'火','戊':'土','己':'土','庚':'金','辛':'金','壬':'水','癸':'水'};
+const ZHI_WX = {'子':'水','丑':'土','寅':'木','卯':'木','辰':'土','巳':'火','午':'火','未':'土','申':'金','酉':'金','戌':'土','亥':'水'};
+
+const SHENG = { '木':'火', '火':'土', '土':'金', '金':'水', '水':'木' };
+const KE   = { '木':'土', '火':'金', '土':'水', '金':'木', '水':'火' };
+const BEI_KE = { '木':'金', '火':'水', '土':'木', '金':'火', '水':'土' };
+
+const DIM_COLORS = {
+  overall:  '#d4a76a',
+  career:   '#6ca8ef',
+  love:     '#ef6ca8',
+  wealth:   '#6ecf6e',
+  health:   '#c0c0c0'
+};
+
+const DIM_NAMES = {
+  overall: '综合',
+  career:  '事业',
+  love:    '姻缘',
+  wealth:  '财运',
+  health:  '健康'
+};
+
+let chartData = null;
+let dimVisible = { overall: true, career: true, love: true, wealth: true, health: true };
+let canvasW = 0, canvasH = 0;
+const CHART_PAD = { top: 28, right: 20, bottom: 36, left: 36 };
+
+function wxOf(gz) {
+  if (!gz || gz.length < 2) return '土';
+  return GAN_WX[gz[0]] || '土';
+}
+
+function wxScore(dayWx, targetWx) {
+  if (targetWx === dayWx) return 70;
+  if (SHENG[targetWx] === dayWx) return 80;
+  if (SHENG[dayWx] === targetWx) return 55;
+  if (KE[dayWx] === targetWx) return 40;
+  if (BEI_KE[dayWx] === targetWx) return 30;
+  return 50;
+}
+
+function computeScores(dayWx, gz, age) {
+  const w = wxOf(gz);
+  const ganW = GAN_WX[gz[0]] || '土';
+  const zhiW = ZHI_WX[gz[1]] || '土';
+
+  const base = wxScore(dayWx, w);
+  const ganS = wxScore(dayWx, ganW);
+  const zhiS = wxScore(dayWx, zhiW);
+
+  function jitter(seed) {
+    return Math.sin(seed * 9.1 + age * 0.7) * 8 + Math.cos(seed * 3.7 + age * 1.3) * 5;
+  }
+
+  const overall = Math.round(Math.min(95, Math.max(20, (base * 0.4 + ganS * 0.3 + zhiS * 0.3) + jitter(1))));
+
+  const careerBase = (SHENG[ganW] === dayWx || ganW === dayWx) ? 75 : (KE[ganW] === dayWx ? 35 : 55);
+  const career = Math.round(Math.min(95, Math.max(15, careerBase + jitter(2) + (age > 25 && age < 50 ? 8 : 0))));
+
+  const loveFavor = (zhiW === '火' || zhiW === '水') ? 10 : (zhiW === '金' ? -5 : 0);
+  const love = Math.round(Math.min(95, Math.max(15, base * 0.5 + zhiS * 0.5 + loveFavor + jitter(3) + (age > 22 && age < 35 ? 6 : 0))));
+
+  const wealthFavor = (KE[dayWx] === ganW) ? 15 : (SHENG[dayWx] === ganW ? 10 : 0);
+  const wealth = Math.round(Math.min(95, Math.max(15, ganS * 0.6 + zhiS * 0.4 + wealthFavor + jitter(4))));
+
+  const healthPenalty = (BEI_KE[dayWx] === zhiW) ? -12 : 0;
+  const agePenalty = age > 60 ? -(age - 60) * 0.5 : 0;
+  const health = Math.round(Math.min(95, Math.max(15, 70 + healthPenalty + agePenalty + jitter(5))));
+
+  return { overall, career, love, wealth, health, gz, age };
+}
+
+function buildChartData(eightChar, gender, birthYear) {
+  const dayWx = GAN_WX[eightChar.getDayGan()] || '土';
+  const yun = eightChar.getYun(gender);
+  const daYunArr = yun.getDaYun();
+
+  const points = [];
+  const daYunInfo = [];
+
+  for (let i = 0; i < daYunArr.length; i++) {
+    const dy = daYunArr[i];
+    const startAge = dy.getStartAge();
+    const gz = dy.getGanZhi();
+
+    if (!gz || gz.length < 2) continue;
+
+    const liuNianArr = dy.getLiuNian();
+    const lnList = [];
+
+    for (let j = 0; j < liuNianArr.length; j++) {
+      const ln = liuNianArr[j];
+      const age = ln.getAge();
+      const lnGz = ln.getGanZhi();
+      if (!lnGz || lnGz.length < 2) continue;
+      const scores = computeScores(dayWx, lnGz, age);
+      scores.year = ln.getYear();
+      scores.dayunGz = gz;
+      points.push(scores);
+      lnList.push(scores);
+    }
+
+    daYunInfo.push({
+      gz, startAge,
+      startYear: dy.getStartYear(),
+      endAge: startAge + (liuNianArr.length > 0 ? liuNianArr.length - 1 : 9),
+      liuNian: lnList
+    });
+  }
+
+  return { points, daYunInfo, dayWx, birthYear };
+}
+
+function drawChart() {
+  if (!chartData) return;
+  const canvas = document.getElementById('klineCanvas');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvasW = rect.width;
+  canvasH = 320;
+  canvas.width = canvasW * dpr;
+  canvas.height = canvasH * dpr;
+  canvas.style.height = canvasH + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const { points, daYunInfo } = chartData;
+  if (points.length === 0) return;
+
+  const pad = CHART_PAD;
+  const plotW = canvasW - pad.left - pad.right;
+  const plotH = canvasH - pad.top - pad.bottom;
+
+  const minAge = points[0].age;
+  const maxAge = points[points.length - 1].age;
+  const ageSpan = Math.max(maxAge - minAge, 1);
+
+  function xOf(age) { return pad.left + ((age - minAge) / ageSpan) * plotW; }
+  function yOf(val) { return pad.top + (1 - val / 100) * plotH; }
+
+  ctx.clearRect(0, 0, canvasW, canvasH);
+
+  // 大运 background bands
+  daYunInfo.forEach((dy, i) => {
+    const x1 = xOf(dy.startAge);
+    const x2 = xOf(dy.endAge);
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(228,196,139,0.03)' : 'rgba(228,196,139,0.06)';
+    ctx.fillRect(x1, pad.top, x2 - x1, plotH);
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(228,196,139,0.15)';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(dy.gz, (x1 + x2) / 2, pad.top + 14);
+    ctx.restore();
+  });
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(228,196,139,0.06)';
+  ctx.lineWidth = 1;
+  for (let v = 20; v <= 80; v += 20) {
+    ctx.beginPath();
+    ctx.moveTo(pad.left, yOf(v));
+    ctx.lineTo(canvasW - pad.right, yOf(v));
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(228,196,139,0.2)';
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(v, pad.left - 6, yOf(v) + 3);
+  }
+
+  // Age labels
+  ctx.fillStyle = 'rgba(228,196,139,0.25)';
+  ctx.font = '9px sans-serif';
+  ctx.textAlign = 'center';
+  const ageStep = ageSpan > 60 ? 10 : 5;
+  for (let a = Math.ceil(minAge / ageStep) * ageStep; a <= maxAge; a += ageStep) {
+    ctx.fillText(a + '岁', xOf(a), canvasH - pad.bottom + 16);
+  }
+
+  // Current age marker
+  const currentAge = new Date().getFullYear() - chartData.birthYear;
+  if (currentAge >= minAge && currentAge <= maxAge) {
+    ctx.strokeStyle = 'rgba(228,196,139,0.25)';
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(xOf(currentAge), pad.top);
+    ctx.lineTo(xOf(currentAge), pad.top + plotH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = 'rgba(228,196,139,0.4)';
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('今', xOf(currentAge), canvasH - pad.bottom + 26);
+  }
+
+  // Draw lines
+  const dims = ['overall','career','love','wealth','health'];
+  dims.forEach(dim => {
+    if (!dimVisible[dim]) return;
+    ctx.strokeStyle = DIM_COLORS[dim];
+    ctx.lineWidth = dim === 'overall' ? 2.5 : 1.5;
+    ctx.globalAlpha = dim === 'overall' ? 1 : 0.7;
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      const x = xOf(p.age);
+      const y = yOf(p[dim]);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  });
+
+  // Overall area fill
+  if (dimVisible.overall) {
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      const x = xOf(p.age);
+      const y = yOf(p.overall);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.lineTo(xOf(points[points.length - 1].age), pad.top + plotH);
+    ctx.lineTo(xOf(points[0].age), pad.top + plotH);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
+    grad.addColorStop(0, 'rgba(212,167,106,0.12)');
+    grad.addColorStop(1, 'rgba(212,167,106,0)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+}
+
+function initLegend() {
+  const el = document.getElementById('klineLegend');
+  el.innerHTML = '';
+  Object.keys(DIM_NAMES).forEach(dim => {
+    const span = document.createElement('span');
+    span.innerHTML = '<i style="background:' + DIM_COLORS[dim] + '"></i>' + DIM_NAMES[dim];
+    span.className = dimVisible[dim] ? '' : 'off';
+    span.onclick = () => {
+      dimVisible[dim] = !dimVisible[dim];
+      span.className = dimVisible[dim] ? '' : 'off';
+      drawChart();
+    };
+    el.appendChild(span);
+  });
+}
+
+function initChartHover() {
+  const canvas = document.getElementById('klineCanvas');
+  const tip = document.getElementById('klineTip');
+
+  canvas.addEventListener('mousemove', function(e) {
+    if (!chartData || chartData.points.length === 0) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    const { points } = chartData;
+    const minAge = points[0].age;
+    const maxAge = points[points.length - 1].age;
+    const plotW = canvasW - CHART_PAD.left - CHART_PAD.right;
+
+    const hoverAge = Math.round(minAge + ((mx - CHART_PAD.left) / plotW) * (maxAge - minAge));
+    const p = points.find(pt => pt.age === hoverAge);
+    if (!p) { tip.style.display = 'none'; return; }
+
+    let html = '<div style="font-weight:600;margin-bottom:4px;">' + p.year + '年 · ' + p.age + '岁</div>';
+    html += '<div style="font-size:0.7rem;color:#8a7a66;margin-bottom:6px;">流年 ' + p.gz + ' · 大运 ' + p.dayunGz + '</div>';
+    Object.keys(DIM_NAMES).forEach(dim => {
+      const val = p[dim];
+      const bar = '█'.repeat(Math.round(val / 10)) + '░'.repeat(10 - Math.round(val / 10));
+      html += '<div style="color:' + DIM_COLORS[dim] + '">' + DIM_NAMES[dim] + ' ' + bar + ' ' + val + '</div>';
+    });
+
+    tip.innerHTML = html;
+    tip.style.display = 'block';
+
+    let tx = mx + 16;
+    let ty = my - 20;
+    if (tx + 180 > canvasW) tx = mx - 180;
+    if (ty < 0) ty = 10;
+    tip.style.left = tx + 'px';
+    tip.style.top = ty + 'px';
+  });
+
+  canvas.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+}
+
+function renderDayun(daYunInfo, birthYear) {
+  const currentAge = new Date().getFullYear() - birthYear;
+  const row = document.getElementById('dayunRow');
+  row.innerHTML = daYunInfo.map((dy, i) => {
+    const isActive = currentAge >= dy.startAge && currentAge <= dy.endAge;
+    const ganWx = GAN_WX[dy.gz[0]] || '土';
+    const zhiWx = ZHI_WX[dy.gz[1]] || '土';
+    return '<div class="dayun-item' + (isActive ? ' active' : '') + '" data-idx="' + i + '">' +
+      '<div class="dayun-age">' + dy.startAge + '-' + dy.endAge + '岁</div>' +
+      '<div class="dayun-gz"><span class="' + WX_MAP[ganWx] + '">' + dy.gz[0] + '</span><span class="' + WX_MAP[zhiWx] + '">' + dy.gz[1] + '</span></div>' +
+      '<div class="dayun-wx">' + ganWx + zhiWx + '</div>' +
+      '<div class="dayun-year">' + dy.startYear + '年</div>' +
+      '</div>';
+  }).join('');
+
+  row.querySelectorAll('.dayun-item').forEach(item => {
+    item.addEventListener('click', function() {
+      const idx = parseInt(this.dataset.idx);
+      showLiuNianDetail(daYunInfo[idx]);
+    });
+  });
+}
+
+function showLiuNianDetail(dy) {
+  const el = document.getElementById('liuyearDetail');
+  if (!dy.liuNian || dy.liuNian.length === 0) { el.style.display = 'none'; return; }
+
+  let html = '<h4>大运 ' + dy.gz + '（' + dy.startAge + '-' + dy.endAge + '岁）流年详情</h4>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;">';
+
+  dy.liuNian.forEach(ln => {
+    const scoreColor = ln.overall >= 70 ? '#6ecf6e' : (ln.overall >= 45 ? '#d4a76a' : '#ef6c6c');
+    html += '<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:8px 10px;border:1px solid rgba(228,196,139,0.08);">';
+    html += '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">';
+    html += '<span style="font-size:0.78rem;">' + ln.year + '年 ' + ln.age + '岁</span>';
+    html += '<span style="font-size:0.72rem;color:' + scoreColor + ';">' + ln.overall + '分</span>';
+    html += '</div>';
+    html += '<div style="font-size:0.85rem;font-weight:600;">' + ln.gz + '</div>';
+    html += '<div style="font-size:0.65rem;color:#8a7a66;margin-top:2px;">';
+    html += '事' + ln.career + ' 缘' + ln.love + ' 财' + ln.wealth + ' 健' + ln.health;
+    html += '</div></div>';
+  });
+
+  html += '</div>';
+  el.innerHTML = html;
+  el.style.display = 'block';
+}
+
+function getWxClass(c) { return WX_MAP[c] || ''; }
+
+function countWuxing(ec) {
+  const counts = { '金': 0, '木': 0, '水': 0, '火': 0, '土': 0 };
+  [ec.getYearWuXing(), ec.getMonthWuXing(), ec.getDayWuXing(), ec.getTimeWuXing()].forEach(wx => {
+    for (const c of wx) { if (counts.hasOwnProperty(c)) counts[c]++; }
+  });
+  return counts;
+}
+
+function generateDimSection(title, icon, iconBg, score, paragraphs, tags) {
+  let html = '<div class="dim-section"><div class="dim-header">';
+  html += '<div class="dim-icon" style="background:' + iconBg + '">' + icon + '</div>';
+  html += '<div class="dim-title">' + title + '</div>';
+  const sColor = score >= 70 ? '#6ecf6e' : (score >= 45 ? '#d4a76a' : '#ef6c6c');
+  html += '<div class="dim-score" style="color:' + sColor + '">' + score + '分</div>';
+  html += '</div><div class="dim-body">';
+  paragraphs.forEach(p => { html += '<p>' + p + '</p>'; });
+  if (tags && tags.length > 0) {
+    html += '<div class="dim-tags">' + tags.map(t => '<span class="tag ' + (t.type || '') + '">' + t.text + '</span>').join('') + '</div>';
+  }
+  html += '</div></div>';
+  return html;
+}
+
+function analyzeCareer(dayWx, counts, ec) {
+  const data = {
+    '木': {
+      dir: '教育、文创、出版、医疗、环保、科研',
+      style: '善于规划和创新，适合需要持续成长的领域。管理风格温和，以德服人。',
+      peak: '30-45岁事业上升期最为明显，适合在此阶段确立核心竞争力。',
+      traits: ['创造力强', '善于学习', '成长型思维']
+    },
+    '火': {
+      dir: '科技、互联网、传媒、演艺、能源、餐饮',
+      style: '行动力强，敢为人先。适合创业或带领团队冲锋。',
+      peak: '25-40岁精力旺盛期是最佳发力时段。',
+      traits: ['领导力强', '敢于冒险', '感染力佳']
+    },
+    '土': {
+      dir: '房地产、建筑、金融、农业、物流、行政管理',
+      style: '稳健务实，善于统筹。适合需要耐心和信任的岗位。',
+      peak: '35-55岁厚积薄发期，越老越值钱。',
+      traits: ['稳重可靠', '统筹能力', '执行力强']
+    },
+    '金': {
+      dir: '金融、法律、制造业、IT硬件、珠宝、军警',
+      style: '果断高效，注重结果。适合竞争激烈的行业。',
+      peak: '28-45岁是事业黄金期，宜把握机会快速上升。',
+      traits: ['决断力强', '目标导向', '纪律严明']
+    },
+    '水': {
+      dir: '贸易、物流、旅游、咨询、IT软件、金融衍生品',
+      style: '灵活善变，善于发现机会。适合需要沟通和策略的工作。',
+      peak: '25-50岁持续活跃期，适合多元化发展。',
+      traits: ['思维敏捷', '善于社交', '应变力强']
+    }
+  };
+  const d = data[dayWx] || data['土'];
+  const score = Math.min(95, Math.max(30, 55 + (counts[dayWx] || 0) * 5 + (counts[SHENG[dayWx]] || 0) * 3));
+
+  const paras = [
+    '<strong>适合方向：</strong>' + d.dir,
+    '<strong>工作风格：</strong>' + d.style,
+    '<strong>事业节奏：</strong>' + d.peak
+  ];
+
+  if (counts[KE[dayWx]] > counts[dayWx]) {
+    paras.push('命局中克我之五行较旺，事业中易遇阻力，但磨砺后反而更加坚韧，逆风翻盘型选手。');
+  }
+
+  const tags = d.traits.map(t => ({ text: t, type: 'tag-good' }));
+  return { score, html: generateDimSection('事业运势', '仕', 'rgba(108,168,239,0.15)', score, paras, tags) };
+}
+
+function analyzeLove(dayWx, counts, ec, gender) {
+  const data = {
+    '木': {
+      style: '温柔体贴，重感情，追求精神契合。恋爱中注重成长和陪伴。',
+      match: '最佳配对五行：水（滋养）、火（互补），与金命人需磨合。',
+      issue: '容易优柔寡断，感情中缺乏果断。',
+      time: '桃花运集中在25-32岁，宜主动出击。'
+    },
+    '火': {
+      style: '热情浪漫，主动出击，爱得轰轰烈烈。',
+      match: '最佳配对五行：木（助燃）、土（互补），与水命人需多包容。',
+      issue: '热情来得快去得也快，容易三分钟热度。',
+      time: '桃花运较早，22-30岁感情运最旺。'
+    },
+    '土': {
+      style: '踏实专一，重承诺，追求长久稳定的关系。',
+      match: '最佳配对五行：火（相生）、金（互补），与木命人易有摩擦。',
+      issue: '过于保守被动，容易错过缘分。',
+      time: '感情运稳步上升，28-38岁是佳期。'
+    },
+    '金': {
+      style: '认真负责，对伴侣要求较高，追求品质感情。',
+      match: '最佳配对五行：土（滋养）、水（互补），与火命人需忍让。',
+      issue: '过于理性，有时显得不够浪漫。',
+      time: '桃花运在26-35岁最旺，切勿挑剔过头。'
+    },
+    '水': {
+      style: '柔情似水，善解人意，异性缘佳。',
+      match: '最佳配对五行：金（相生）、木（互补），与土命人需调适。',
+      issue: '感情丰富但容易摇摆不定。',
+      time: '桃花运持续旺盛，23-33岁选择最多。'
+    }
+  };
+
+  const d = data[dayWx] || data['土'];
+  const peachBlossom = counts['火'] + counts['水'];
+  const score = Math.min(95, Math.max(25, 50 + peachBlossom * 6 + (counts[SHENG[dayWx]] || 0) * 3));
+
+  const paras = [
+    '<strong>感情风格：</strong>' + d.style,
+    '<strong>配对建议：</strong>' + d.match,
+    '<strong>需要注意：</strong>' + d.issue,
+    '<strong>桃花时机：</strong>' + d.time
+  ];
+
+  const tags = [
+    { text: peachBlossom >= 3 ? '桃花旺盛' : (peachBlossom >= 2 ? '桃花适中' : '桃花偏弱'), type: peachBlossom >= 2 ? 'tag-good' : 'tag-warn' },
+    { text: gender === 1 ? '正财为妻星' : '正官为夫星', type: 'tag-info' }
+  ];
+
+  return { score, html: generateDimSection('姻缘感情', '缘', 'rgba(239,108,168,0.15)', score, paras, tags) };
+}
+
+function analyzeWealth(dayWx, counts, ec) {
+  const wealthElement = KE[dayWx];
+
+  const data = {
+    '木': { main: '正财稳健型', desc: '财运渐入佳境，中年后财富积累明显。适合长期投资、价值投资。偏财运一般，不宜投机。', invest: '基金定投、房产、教育投资', risk: '中低风险偏好' },
+    '火': { main: '偏财活跃型', desc: '财来财去较快，正财稳定，偏财运佳。善于把握风口，但需注意理性消费，避免冲动投资。', invest: '股票、创业投资、科技赛道', risk: '中高风险承受力' },
+    '土': { main: '厚积薄发型', desc: '财运稳中有升，不宜冒进。适合守正出奇，稳扎稳打方为上策。中年后财库渐丰。', invest: '房产、债券、银行理财', risk: '低风险稳健型' },
+    '金': { main: '正财旺盛型', desc: '工作收入稳定增长，正财运旺。善于积累财富，偏财需谨慎。适合专业技术变现。', invest: '黄金、优质蓝筹、知识付费', risk: '中等风险偏好' },
+    '水': { main: '财运波动型', desc: '善于发现商机，灵活投资。财运波动较大，高低起伏明显。适合多元化布局分散风险。', invest: '外汇、贸易、多元化配置', risk: '高风险高回报型' }
+  };
+
+  const d = data[dayWx] || data['土'];
+  const wealthCount = counts[wealthElement] || 0;
+  const score = Math.min(95, Math.max(25, 45 + wealthCount * 10 + (counts[dayWx] || 0) * 4));
+
+  const paras = [
+    '<strong>财运类型：</strong>' + d.main,
+    '<strong>财运概述：</strong>' + d.desc,
+    '<strong>投资方向：</strong>' + d.invest,
+    '<strong>风险偏好：</strong>' + d.risk
+  ];
+
+  const tags = [
+    { text: wealthCount >= 2 ? '财星旺' : (wealthCount >= 1 ? '财星适中' : '财星弱'), type: wealthCount >= 1 ? 'tag-good' : 'tag-warn' },
+    { text: '财星属' + wealthElement, type: 'tag-info' }
+  ];
+
+  return { score, html: generateDimSection('财运分析', '财', 'rgba(110,207,110,0.15)', score, paras, tags) };
+}
+
+function analyzeHealth(dayWx, counts, ec) {
+  const organMap = {
+    '木': { organ: '肝胆', weak: '眼睛、筋腱', advice: '宜疏肝理气，少熬夜，多食绿色蔬菜。春季注意养护。', exercise: '太极、瑜伽、散步', emotion: '忌怒伤肝，保持心情舒畅' },
+    '火': { organ: '心脏、小肠', weak: '血液循环、舌', advice: '宜养心安神，少食辛辣，注意心血管健康。夏季防暑。', exercise: '游泳、慢跑、冥想', emotion: '忌喜伤心，保持情绪平稳' },
+    '土': { organ: '脾胃', weak: '消化系统、肌肉', advice: '宜健脾养胃，饮食规律，少食生冷。换季注意。', exercise: '八段锦、饭后散步', emotion: '忌思伤脾，避免过度忧虑' },
+    '金': { organ: '肺、大肠', weak: '呼吸系统、皮肤', advice: '宜润肺养阴，注意空气质量，少食辛燥。秋季防燥。', exercise: '呼吸操、登山、有氧运动', emotion: '忌悲伤肺，培养乐观心态' },
+    '水': { organ: '肾、膀胱', weak: '泌尿系统、骨骼', advice: '宜补肾固本，注意腰部保护，冬季进补。', exercise: '站桩、慢跑、跳绳', emotion: '忌恐伤肾，增强安全感' }
+  };
+
+  const d = organMap[dayWx] || organMap['土'];
+  const weakElement = BEI_KE[dayWx];
+  const weakCount = counts[weakElement] || 0;
+  const score = Math.min(95, Math.max(30, 70 - weakCount * 8 + (counts[SHENG[dayWx]] || 0) * 5));
+
+  const lack = Object.entries(counts).filter(([k, v]) => v === 0).map(([k]) => k);
+
+  const paras = [
+    '<strong>易感器官：</strong>' + d.organ + '（关联：' + d.weak + '）',
+    '<strong>养生建议：</strong>' + d.advice,
+    '<strong>运动推荐：</strong>' + d.exercise,
+    '<strong>情志调养：</strong>' + d.emotion
+  ];
+
+  if (lack.length > 0) {
+    const lackOrgan = lack.map(w => organMap[w] ? organMap[w].organ : '').filter(Boolean).join('、');
+    paras.push('<strong>五行缺失提醒：</strong>命局缺' + lack.join('、') + '，' + lackOrgan + '方面需额外关注。');
+  }
+
+  const tags = [
+    { text: score >= 65 ? '体质较好' : '体质偏弱', type: score >= 65 ? 'tag-good' : 'tag-warn' },
+    { text: '注意' + d.organ, type: 'tag-info' }
+  ];
+
+  return { score, html: generateDimSection('健康养生', '寿', 'rgba(192,192,192,0.15)', score, paras, tags) };
+}
+
+function generateOverallFortune(ec, lunar, solar, gender, counts, dayWx) {
+  const zodiac = lunar.getYearShengXiao();
+  const xingzuo = solar.getXingZuo();
+  const nayin = ec.getYearNaYin();
+  const dayGan = ec.getDayGan();
+
+  const traits = {
+    '木': '仁慈正直、富有同情心、创造力强、性格温和',
+    '火': '热情奔放、积极进取、领导力强、光明磊落',
+    '土': '稳重踏实、诚实守信、包容力强、务实可靠',
+    '金': '果断刚毅、意志坚定、正义感强、重义守信',
+    '水': '聪慧灵活、智慧过人、适应力强、善于交际'
+  };
+
+  const nayinInterpret = {
+    '海中金': '如沉睡海底之金，深藏不露，大器晚成。', '炉中火': '如炉中烈火，热情似火，敢作敢为。',
+    '大林木': '如参天大树，根基深厚，庇荫他人。', '路旁土': '如路旁之土，朴实无华，脚踏实地。',
+    '剑锋金': '如剑锋之利，锐不可当，成就非凡。', '山头火': '如山巅之火，光芒万丈，引人注目。',
+    '涧下水': '如山涧清泉，清澈明净，润泽万物。', '城头土': '如城墙之土，坚固稳定，守护安宁。',
+    '白蜡金': '如白蜡之金，温润如玉，内敛含蓄。', '杨柳木': '如杨柳之姿，柔韧多情，随遇而安。',
+    '泉中水': '如泉涌之水，生生不息，活力充沛。', '屋上土': '如屋上之土，安居乐业，稳中求进。',
+    '霹雳火': '如霹雳之火，雷厉风行，一鸣惊人。', '松柏木': '如松柏之木，四季常青，坚韧不拔。',
+    '长流水': '如长河之水，奔流不息，志向远大。', '砂石金': '如砂石之金，历经磨砺，终显光华。',
+    '山下火': '如山下之火，温暖和煦，照亮他人。', '平地木': '如平地之木，朴实生长，自然天成。',
+    '壁上土': '如壁上之土，依附而立，善于合作。', '金箔金': '如金箔之薄，华丽精致，善于表现。',
+    '覆灯火': '如灯下之火，温和内敛，照亮近处。', '天河水': '如天河之水，气势磅礴，胸怀宽广。',
+    '大驿土': '如驿站之土，通达四方，人缘极好。', '钗钏金': '如钗钏之饰，精巧别致，审美独到。',
+    '桑柘木': '如桑柘之木，实用朴素，默默奉献。', '大溪水': '如大溪之水，奔涌向前，充满激情。',
+    '沙中土': '如沙中之土，潜力深藏，待时而发。', '天上火': '如天上烈日，光芒普照，热情洋溢。',
+    '石榴木': '如石榴之木，果实累累，丰收有望。', '大海水': '如大海之水，宽广无边，包容万物。'
+  };
+
+  const maxWx = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  const lack = Object.entries(counts).filter(([k, v]) => v === 0).map(([k]) => k);
+
+  let html = '<p><strong>日主：</strong>' + dayGan + '（' + dayWx + '）命，属' + zodiac + '，' + xingzuo + '座。</p>';
+  html += '<p><strong>纳音：</strong>' + nayin + '命。' + (nayinInterpret[nayin] || '命格独特，自有天地。') + '</p>';
+  html += '<p><strong>性格特质：</strong>' + (traits[dayWx] || traits['土']) + '。</p>';
+  html += '<p><strong>五行格局：</strong>' + maxWx[0] + '最旺（' + maxWx[1] + '个）';
+  if (lack.length > 0) {
+    html += '，缺<span class="' + WX_MAP[lack[0]] + '">' + lack.join('、') + '</span>';
+    html += '。可通过颜色、方位、饮食等方式补足。';
+  } else {
+    html += '，五行俱全，格局圆融。';
+  }
+  html += '</p>';
+
+  const wxColors = { '木': '绿色', '火': '红/紫色', '土': '黄/棕色', '金': '白/银色', '水': '蓝/黑色' };
+  const wxDir = { '木': '东方', '火': '南方', '土': '中部', '金': '西方', '水': '北方' };
+  const luckyWx = SHENG[dayWx];
+  html += '<p><strong>幸运元素：</strong>幸运色 ' + wxColors[luckyWx] + '，幸运方位 ' + wxDir[luckyWx] + '，贵人五行属' + luckyWx + '。</p>';
+
+  return html;
+}
+
+/* ================= AI 综合解读（大模型接入 + 超时降级） ================= */
+const AI_TIMEOUT_MS = 12000;
+const AI_DEFAULT_BASE = 'https://api.deepseek.com';
+const AI_DEFAULT_MODEL = 'deepseek-chat';
+const AI_SYSTEM_PROMPT = '你是一位学养深厚的命理顾问，精通八字五行与人生运势解读，文风温润典雅、深入浅出。';
+
+let aiState = { abort: null, ctx: null };
+
+function getAiCfg() {
+  return {
+    base: (localStorage.getItem('llm_base') || AI_DEFAULT_BASE).trim(),
+    key: (localStorage.getItem('llm_key') || '').trim(),
+    model: (localStorage.getItem('llm_model') || AI_DEFAULT_MODEL).trim()
+  };
+}
+
+function llmUrl(base) {
+  base = base.replace(/\/+$/, '');
+  if (/\/chat\/completions$/.test(base)) return base;
+  if (/\/v\d+$/.test(base)) return base + '/chat/completions';
+  return base + '/v1/chat/completions';
+}
+
+function escHtml(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+function setAiBadge(text, cls) {
+  const b = document.getElementById('aiBadge');
+  b.textContent = text;
+  b.className = 'ai-badge' + (cls ? ' ' + cls : '');
+}
+
+function setAiNote(text) {
+  const n = document.getElementById('aiNote');
+  n.textContent = text || '';
+  n.style.display = text ? 'block' : 'none';
+}
+
+function buildAiPrompt(ctx) {
+  const ec = ctx.ec, lunar = ctx.lunar, solar = ctx.solar, counts = ctx.counts;
+  const parts = ctx.dateStr.split('-').map(Number);
+  const wxList = ['木', '火', '土', '金', '水'].map(function (w) { return w + ' ' + counts[w]; }).join('、');
+  const lack = Object.entries(counts).filter(function (e) { return e[1] === 0; }).map(function (e) { return e[0]; });
+
+  // 今年运势评分（取 K 线数据中当年一点）
+  let scoreLine = '';
+  if (chartData && chartData.points) {
+    const y = new Date().getFullYear();
+    const pt = chartData.points.find(function (p) { return p.year === y; }) || chartData.points[chartData.points.length - 1];
+    if (pt) {
+      scoreLine = '【今年运势评分】综合 ' + pt.overall + '；事业 ' + pt.career + '；姻缘 ' + pt.love +
+        '；财运 ' + pt.wealth + '；健康 ' + pt.health + '（满分 100）\n';
+    }
+  }
+
+  return '你是一位温和专业的命理顾问。根据以下命盘信息，写一段约 300 字的综合命理解读。\n\n' +
+    '【基本信息】' + (ctx.gender === 1 ? '男' : '女') + '；公历 ' + parts[0] + '年' + parts[1] + '月' + parts[2] + '日 ' + ctx.hourLabel +
+    '；农历 ' + lunar.getYearInChinese() + '年' + lunar.getMonthInChinese() + '月' + lunar.getDayInChinese() +
+    '；生肖 ' + lunar.getYearShengXiao() + '；星座 ' + solar.getXingZuo() + '座\n' +
+    '【四柱八字】年柱 ' + ec.getYearGan() + ec.getYearZhi() + '；月柱 ' + ec.getMonthGan() + ec.getMonthZhi() +
+    '；日柱 ' + ec.getDayGan() + ec.getDayZhi() + '；时柱 ' + ec.getTimeGan() + ec.getTimeZhi() + '\n' +
+    '【日主】' + ec.getDayGan() + ctx.dayWx + '命\n' +
+    '【五行分布】' + wxList + (lack.length ? '；缺 ' + lack.join('、') : '；五行俱全') + '\n' +
+    '【纳音】' + ec.getYearNaYin() + '命\n' +
+    scoreLine + '\n' +
+    '要求：\n' +
+    '1. 分 3 个小段：第一段讲性格与命格格局，第二段讲事业与财运走势，第三段讲感情、健康与可行动的建议；\n' +
+    '2. 语气温和、具体、正向，给 2-3 个可落地的小建议（幸运色、方位、生活习惯等）；\n' +
+    '3. 不做绝对化断言，不使用 markdown 标题或列表符号，直接输出正文。';
+}
+
+// 状态机：loading -> AI 成功 / 超时或失败自动降级本地模板
+function aiFortune(ctx) {
+  aiState.ctx = ctx;
+  if (aiState.abort) { try { aiState.abort.abort('replaced'); } catch (e) {} aiState.abort = null; }
+
+  const el = document.getElementById('fortuneText');
+  const regen = document.getElementById('aiRegenBtn');
+  const cfg = getAiCfg();
+
+  if (!cfg.key) {
+    el.innerHTML = ctx.localHtml;
+    setAiBadge('本地解读', '');
+    setAiNote('未配置 AI 接口，当前为本地模板解读。点击「⚙ AI 配置」填入 API Key 后，此板块将由大模型实时生成。');
+    regen.style.display = 'none';
+    return;
+  }
+
+  el.innerHTML = '<div class="ai-loading"><span class="ai-spin"></span>AI 正在推演命盘（约 3-10 秒）…</div>';
+  setAiBadge('AI 生成中…', '');
+  setAiNote('');
+  regen.style.display = 'none';
+
+  const ctrl = new AbortController();
+  aiState.abort = ctrl;
+  const timer = setTimeout(function () { try { ctrl.abort('timeout'); } catch (e) {} }, AI_TIMEOUT_MS);
+
+  fetch(llmUrl(cfg.base), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.key },
+    body: JSON.stringify({
+      model: cfg.model,
+      messages: [
+        { role: 'system', content: AI_SYSTEM_PROMPT },
+        { role: 'user', content: buildAiPrompt(ctx) }
+      ],
+      temperature: 0.85,
+      max_tokens: 800
+    }),
+    signal: ctrl.signal
+  }).then(function (r) {
+    if (!r.ok) {
+      return r.text().then(function (t) {
+        let d = '';
+        try { const j = JSON.parse(t); d = (j.error && (j.error.message || j.error.code)) || ''; } catch (e) {}
+        throw new Error('HTTP ' + r.status + (d ? '：' + d : ''));
+      });
+    }
+    return r.json();
+  }).then(function (data) {
+    clearTimeout(timer);
+    if (aiState.abort !== ctrl) return;
+    const content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    if (!content) throw new Error('返回内容为空');
+    aiState.abort = null;
+    el.innerHTML = content.split(/\n+/).map(function (s) { return s.trim(); }).filter(Boolean)
+      .map(function (p) { return '<p>' + escHtml(p) + '</p>'; }).join('');
+    setAiBadge('✦ AI 生成 · ' + cfg.model, 'ai-badge-ok');
+    regen.style.display = '';
+  }).catch(function (err) {
+    clearTimeout(timer);
+    if (aiState.abort !== ctrl) return;
+    aiState.abort = null;
+    let reason;
+    if (ctrl.signal.aborted) {
+      reason = ctrl.signal.reason === 'timeout' ? 'AI 响应超过 ' + (AI_TIMEOUT_MS / 1000) + ' 秒未返回' : '请求已取消';
+    } else if (err && err.name === 'TypeError') {
+      reason = '网络无法连通（请检查接口地址与网络）';
+    } else {
+      reason = 'AI 调用失败（' + ((err && (err.message || err)) || '未知错误') + '）';
+    }
+    el.innerHTML = ctx.localHtml;
+    setAiBadge('本地解读 · AI 降级', 'ai-badge-warn');
+    setAiNote(reason + '，已自动降级为本地模板解读。可点击「重新生成」重试。');
+    regen.style.display = '';
+  });
+}
+
+function regenerateAI() {
+  if (aiState.ctx) aiFortune(aiState.ctx);
+}
+
+function toggleAiConfig() {
+  const box = document.getElementById('aiConfig');
+  if (box.style.display === 'none') {
+    const cfg = getAiCfg();
+    document.getElementById('cfgBase').value = cfg.base;
+    document.getElementById('cfgKey').value = cfg.key;
+    document.getElementById('cfgModel').value = cfg.model;
+    box.style.display = 'block';
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+function saveAiConfig() {
+  const base = document.getElementById('cfgBase').value.trim() || AI_DEFAULT_BASE;
+  const key = document.getElementById('cfgKey').value.trim();
+  const model = document.getElementById('cfgModel').value.trim() || AI_DEFAULT_MODEL;
+  localStorage.setItem('llm_base', base);
+  localStorage.setItem('llm_key', key);
+  localStorage.setItem('llm_model', model);
+  document.getElementById('aiCfgMsg').textContent = aiState.ctx ? '已保存，正在用 AI 重新生成…' : '已保存（仅存本机浏览器）';
+  if (aiState.ctx) aiFortune(aiState.ctx);
+}
+/* ================= /AI 综合解读 ================= */
+
+function calculate() {
+  const dateStr = document.getElementById('birthDate').value;
+  if (!dateStr) { alert('请选择出生日期'); return; }
+
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const hourIdx = parseInt(document.getElementById('birthHour').value);
+  const gender = parseInt(document.getElementById('gender').value);
+
+  const solar = Solar.fromYmdHms(y, m, d, HOUR_MAP[hourIdx], 0, 0);
+  const lunar = solar.getLunar();
+  const ec = lunar.getEightChar();
+  const dayWx = GAN_WX[ec.getDayGan()] || '土';
+  const counts = countWuxing(ec);
+
+  // Build chart data
+  chartData = buildChartData(ec, gender, y);
+  initLegend();
+  drawChart();
+  initChartHover();
+
+  // 大运
+  renderDayun(chartData.daYunInfo, y);
+
+  // Four pillars
+  const pillarData = [
+    { label: '年柱', gan: ec.getYearGan(), zhi: ec.getYearZhi(), wx: ec.getYearWuXing(), nayin: ec.getYearNaYin() },
+    { label: '月柱', gan: ec.getMonthGan(), zhi: ec.getMonthZhi(), wx: ec.getMonthWuXing(), nayin: ec.getMonthNaYin() },
+    { label: '日柱', gan: ec.getDayGan(), zhi: ec.getDayZhi(), wx: ec.getDayWuXing(), nayin: ec.getDayNaYin() },
+    { label: '时柱', gan: ec.getTimeGan(), zhi: ec.getTimeZhi(), wx: ec.getTimeWuXing(), nayin: ec.getTimeNaYin() }
+  ];
+
+  document.getElementById('pillars').innerHTML = pillarData.map(p => {
+    const ganWx = p.wx[0], zhiWx = p.wx[1];
+    return '<div class="pillar">' +
+      '<div class="pillar-label">' + p.label + '</div>' +
+      '<div class="pillar-gan ' + getWxClass(ganWx) + '">' + p.gan + '</div>' +
+      '<div class="pillar-zhi ' + getWxClass(zhiWx) + '">' + p.zhi + '</div>' +
+      '<div class="pillar-wuxing">' + p.wx + '</div>' +
+      '<div class="pillar-nayin">' + p.nayin + '</div>' +
+      '</div>';
+  }).join('');
+
+  // Wuxing bars
+  const maxCount = Math.max(...Object.values(counts), 1);
+  const lack = Object.entries(counts).filter(([k, v]) => v === 0).map(([k]) => k);
+  let wxHtml = ['木','火','土','金','水'].map(wx =>
+    '<div class="wuxing-row">' +
+    '<span class="wuxing-name ' + WX_MAP[wx] + '">' + wx + '</span>' +
+    '<div class="wuxing-track"><div class="wuxing-fill" style="width:' + (counts[wx] / maxCount * 100) + '%;background:' + WX_CLR[wx] + '"></div></div>' +
+    '<span class="wuxing-count">' + counts[wx] + '</span></div>'
+  ).join('');
+  if (lack.length > 0) {
+    wxHtml += '<div class="wuxing-lack">五行缺 ' + lack.map(w => '<span class="' + WX_MAP[w] + '">' + w + '</span>').join('、') + '，建议日常注意补足。</div>';
+  }
+  document.getElementById('wuxingBar').innerHTML = wxHtml;
+
+  // Basic info
+  const info = [
+    { label: '农历', value: lunar.getYearInChinese() + '年' + lunar.getMonthInChinese() + '月' + lunar.getDayInChinese() },
+    { label: '生肖', value: lunar.getYearShengXiao() },
+    { label: '星座', value: solar.getXingZuo() + '座' },
+    { label: '节气', value: lunar.getPrevJieQi().getName() + ' → ' + lunar.getNextJieQi().getName() },
+    { label: '日主', value: ec.getDayGan() + '（' + dayWx + '）' },
+    { label: '纳音', value: ec.getYearNaYin() + '命' }
+  ];
+
+  document.getElementById('basicInfo').innerHTML = info.map(i =>
+    '<div class="info-item"><span class="info-label">' + i.label + '</span><span class="info-value">' + i.value + '</span></div>'
+  ).join('');
+
+  // Dimension analyses
+  const career = analyzeCareer(dayWx, counts, ec);
+  document.getElementById('careerSection').innerHTML = career.html;
+
+  const love = analyzeLove(dayWx, counts, ec, gender);
+  document.getElementById('loveSection').innerHTML = love.html;
+
+  const wealth = analyzeWealth(dayWx, counts, ec);
+  document.getElementById('wealthSection').innerHTML = wealth.html;
+
+  const health = analyzeHealth(dayWx, counts, ec);
+  document.getElementById('healthSection').innerHTML = health.html;
+
+  // Overall fortune：本地兜底渲染 + AI 实时生成（超时/失败自动降级）
+  const localFortuneHtml = generateOverallFortune(ec, lunar, solar, gender, counts, dayWx);
+  document.getElementById('fortuneText').innerHTML = localFortuneHtml;
+  aiFortune({
+    ec: ec, lunar: lunar, solar: solar, gender: gender, counts: counts, dayWx: dayWx,
+    dateStr: dateStr,
+    hourLabel: document.getElementById('birthHour').selectedOptions[0].textContent.split(' ')[0],
+    localHtml: localFortuneHtml
+  });
+
+  // Show
+  const results = document.getElementById('results');
+  results.style.display = 'block';
+  results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+window.addEventListener('resize', drawChart);
+</script>
+</body>
+</html>
