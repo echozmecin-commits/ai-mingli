@@ -52,10 +52,23 @@ header p { font-size: 0.9rem; color: #8a7a66; letter-spacing: 0.15em; }
   backdrop-filter: blur(10px);
 }
 
-.form-row { display: flex; gap: 12px; margin-bottom: 14px; }
-.form-group { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.form-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+.form-group { flex: 1 1 160px; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
 
 label { font-size: 0.8rem; color: #a09080; letter-spacing: 0.1em; }
+
+.form-error {
+  min-height: 1.2em; margin-top: 10px; font-size: 0.8rem;
+  color: #ef8c8c; letter-spacing: 0.03em;
+}
+.ai-quick-config {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  margin-top: 12px;
+}
+.ai-quick-hint { font-size: 0.74rem; color: #8a7a66; }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
+  outline: 2px solid #f0c27f; outline-offset: 2px;
+}
 
 input, select {
   background: rgba(255,255,255,0.05);
@@ -271,7 +284,7 @@ select option { background: #1a1a2e; color: #e8d5b7; }
 footer {
   text-align: center; margin-top: 36px; padding-top: 18px;
   border-top: 1px solid rgba(228,196,139,0.08);
-  font-size: 0.72rem; color: #5a4a3a; letter-spacing: 0.05em;
+  font-size: 0.78rem; color: #9a8a76; letter-spacing: 0.05em; line-height: 1.8;
 }
 
 /* 综合解读 fortune */
@@ -323,6 +336,23 @@ footer {
 .ai-config-actions { margin-top: 12px; }
 .ai-config-msg { margin-left: 10px; font-size: 0.76rem; color: #6ecf6e; }
 
+.chart-data { margin-top: 12px; font-size: 0.78rem; color: #8a7a66; }
+.chart-data summary { cursor: pointer; color: #a08d75; }
+.chart-table-wrap { max-height: 260px; overflow: auto; margin-top: 10px; border: 1px solid rgba(228,196,139,0.1); border-radius: 8px; }
+.chart-table-wrap table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
+.chart-table-wrap th, .chart-table-wrap td { padding: 5px 8px; border-bottom: 1px solid rgba(228,196,139,0.07); text-align: right; white-space: nowrap; }
+.chart-table-wrap th { position: sticky; top: 0; background: #141420; color: #d4a76a; }
+.chart-table-wrap td:first-child, .chart-table-wrap th:first-child { text-align: left; }
+.card-note {
+  margin-top: 12px; padding: 8px 10px; border-radius: 8px;
+  font-size: 0.75rem; line-height: 1.6; color: #a08d75;
+  background: rgba(228,196,139,0.04); border: 1px solid rgba(228,196,139,0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
 @media (max-width: 500px) {
   .container { padding: 32px 14px 24px; }
   header h1 { font-size: 1.8rem; }
@@ -342,11 +372,11 @@ footer {
   <div class="input-section">
     <div class="form-row">
       <div class="form-group">
-        <label>出生日期</label>
-        <input type="date" id="birthDate" value="1995-06-15">
+        <label for="birthDate">出生日期</label>
+        <input type="date" id="birthDate" value="1995-06-15" min="1900-01-01" max="2100-12-31">
       </div>
       <div class="form-group">
-        <label>出生时辰</label>
+        <label for="birthHour">出生时辰</label>
         <select id="birthHour">
           <option value="6" selected>午时 (11:00-13:00)</option>
           <option value="0">子时 (23:00-01:00)</option>
@@ -365,7 +395,7 @@ footer {
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>性别</label>
+        <label for="gender">性别</label>
         <select id="gender">
           <option value="1">男</option>
           <option value="0">女</option>
@@ -373,6 +403,22 @@ footer {
       </div>
     </div>
     <button class="btn" onclick="calculate()">开始推算</button>
+    <div id="formError" class="form-error" role="alert" aria-live="polite"></div>
+    <div class="ai-quick-config">
+      <button class="ai-btn ai-btn-ghost" type="button" onclick="toggleAiConfig()">⚙ AI 配置（可选）</button>
+      <span class="ai-quick-hint">不填 Key 也能用，默认本地模板解读</span>
+    </div>
+    <div class="ai-config" id="aiConfig" style="display:none">
+      <p class="ai-config-tip">接入需要 Bearer 鉴权的 OpenAI Chat Completions 兼容接口（默认 DeepSeek）。Key 只保存在本机浏览器；生成时 Key 和你填写的生辰信息会发送到该接口地址，受对方隐私政策约束。默认 20 秒无响应自动降级为本地解读。</p>
+      <div class="ai-config-row"><label for="cfgBase">接口地址</label><input id="cfgBase" placeholder="https://api.deepseek.com"></div>
+      <div class="ai-config-row"><label for="cfgKey">API Key</label><input id="cfgKey" type="password" placeholder="sk-..."></div>
+      <div class="ai-config-row"><label for="cfgModel">模型</label><input id="cfgModel" placeholder="deepseek-chat"></div>
+      <div class="ai-config-actions">
+        <button class="ai-btn" type="button" onclick="saveAiConfig()">保存并生成</button>
+        <button class="ai-btn ai-btn-ghost" type="button" onclick="clearAiConfig()">清除 Key</button>
+        <span class="ai-config-msg" id="aiCfgMsg"></span>
+      </div>
+    </div>
   </div>
 
   <div id="results">
@@ -380,10 +426,19 @@ footer {
     <div class="card">
       <h2>人生运势 K 线</h2>
       <div class="kline-wrap">
-        <canvas id="klineCanvas" height="320"></canvas>
+        <canvas id="klineCanvas" height="320" role="img" aria-label="人生运势曲线图，横轴为年龄，纵轴为娱乐性参考评分"></canvas>
         <div class="kline-tooltip" id="klineTip"></div>
         <div class="kline-legend" id="klineLegend"></div>
       </div>
+      <details class="chart-data">
+        <summary>查看逐年数据表</summary>
+        <div class="chart-table-wrap">
+          <table id="chartTable">
+            <thead><tr><th>年份</th><th>年龄</th><th>综合</th><th>事业</th><th>感情</th><th>财运</th><th>健康</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </details>
     </div>
 
     <!-- 大运 -->
@@ -427,30 +482,26 @@ footer {
     <div class="card">
       <h2>财运分析</h2>
       <div id="wealthSection"></div>
+      <p class="card-note">以上为传统命理娱乐解读，不构成投资建议；请勿据此做任何财务决策。</p>
     </div>
 
     <!-- 健康 -->
     <div class="card">
       <h2>健康养生</h2>
       <div id="healthSection"></div>
+      <p class="card-note">以上为传统命理娱乐解读，不构成医疗建议；身体不适请咨询专业医生。</p>
     </div>
 
     <!-- 综合命理 -->
     <div class="card">
-      <h2>综合命理解读<span class="ai-badge" id="aiBadge">本地解读</span></h2>
-      <div class="fortune-text" id="fortuneText"></div>
-      <div class="ai-note" id="aiNote" style="display:none"></div>
+      <h2>综合命理解读<span class="ai-badge" id="aiBadge" aria-live="polite">本地解读</span></h2>
+      <div class="fortune-text" id="fortuneText" aria-live="polite" aria-busy="false"></div>
+      <div class="ai-note" id="aiNote" style="display:none" aria-live="polite"></div>
       <div class="ai-actions">
         <button class="ai-btn" id="aiRegenBtn" style="display:none" onclick="regenerateAI()">↻ 重新生成</button>
-        <button class="ai-btn ai-btn-ghost" onclick="toggleAiConfig()">⚙ AI 配置</button>
+        <button class="ai-btn ai-btn-ghost" type="button" onclick="showAiConfig()">⚙ AI 配置</button>
       </div>
-      <div class="ai-config" id="aiConfig" style="display:none">
-        <p class="ai-config-tip">接入任意 OpenAI 兼容接口（默认 DeepSeek）。API Key 仅保存在本机浏览器，不上传服务器；生成超过 12 秒无响应时自动降级为本地模板解读。</p>
-        <div class="ai-config-row"><label>接口地址</label><input id="cfgBase" placeholder="https://api.deepseek.com"></div>
-        <div class="ai-config-row"><label>API Key</label><input id="cfgKey" type="password" placeholder="sk-..."></div>
-        <div class="ai-config-row"><label>模型</label><input id="cfgModel" placeholder="deepseek-chat"></div>
-        <div class="ai-config-actions"><button class="ai-btn" onclick="saveAiConfig()">保存并生成</button><span class="ai-config-msg" id="aiCfgMsg"></span></div>
-      </div>
+      <p class="card-note">以上内容为传统命理与生成式 AI 的娱乐性解读，不构成医疗、投资、法律或人生决策建议。</p>
     </div>
   </div>
 
@@ -491,6 +542,7 @@ const DIM_NAMES = {
 let chartData = null;
 let dimVisible = { overall: true, career: true, love: true, wealth: true, health: true };
 let canvasW = 0, canvasH = 0;
+let chartHoverBound = false;
 const CHART_PAD = { top: 28, right: 20, bottom: 36, left: 36 };
 
 function wxOf(gz) {
@@ -579,11 +631,22 @@ function buildChartData(eightChar, gender, birthYear) {
   return { points, daYunInfo, dayWx, birthYear };
 }
 
+function renderChartTable(points) {
+  const tbody = document.querySelector('#chartTable tbody');
+  if (!tbody) return;
+  tbody.innerHTML = points.map(function (p) {
+    return '<tr><td>' + p.year + '</td><td>' + p.age + '</td><td>' + p.overall +
+      '</td><td>' + p.career + '</td><td>' + p.love + '</td><td>' + p.wealth +
+      '</td><td>' + p.health + '</td></tr>';
+  }).join('');
+}
+
 function drawChart() {
   if (!chartData) return;
   const canvas = document.getElementById('klineCanvas');
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.parentElement.getBoundingClientRect();
+  if (!rect.width) return;
   canvasW = rect.width;
   canvasH = 320;
   canvas.width = canvasW * dpr;
@@ -647,8 +710,8 @@ function drawChart() {
     ctx.fillText(a + '岁', xOf(a), canvasH - pad.bottom + 16);
   }
 
-  // Current age marker
-  const currentAge = new Date().getFullYear() - chartData.birthYear;
+  // Current age marker（与排盘使用的虚岁口径保持一致）
+  const currentAge = new Date().getFullYear() - chartData.birthYear + 1;
   if (currentAge >= minAge && currentAge <= maxAge) {
     ctx.strokeStyle = 'rgba(228,196,139,0.25)';
     ctx.setLineDash([4, 4]);
@@ -719,6 +782,8 @@ function initLegend() {
 }
 
 function initChartHover() {
+  if (chartHoverBound) return;
+  chartHoverBound = true;
   const canvas = document.getElementById('klineCanvas');
   const tip = document.getElementById('klineTip');
 
@@ -760,7 +825,7 @@ function initChartHover() {
 }
 
 function renderDayun(daYunInfo, birthYear) {
-  const currentAge = new Date().getFullYear() - birthYear;
+  const currentAge = new Date().getFullYear() - birthYear + 1;
   const row = document.getElementById('dayunRow');
   row.innerHTML = daYunInfo.map((dy, i) => {
     const isActive = currentAge >= dy.startAge && currentAge <= dy.endAge;
@@ -1057,18 +1122,22 @@ function generateOverallFortune(ec, lunar, solar, gender, counts, dayWx) {
 }
 
 /* ================= AI 综合解读（大模型接入 + 超时降级） ================= */
-const AI_TIMEOUT_MS = 12000;
+const AI_TIMEOUT_MS = 20000;
 const AI_DEFAULT_BASE = 'https://api.deepseek.com';
 const AI_DEFAULT_MODEL = 'deepseek-chat';
-const AI_SYSTEM_PROMPT = '你是一位学养深厚的命理顾问，精通八字五行与人生运势解读，文风温润典雅、深入浅出。';
+const AI_SYSTEM_PROMPT = '你是一位学养深厚的命理顾问，精通八字五行与人生运势解读，文风温润典雅、深入浅出。你输出的是传统文化与娱乐性解读，不是科学预测。禁止做医疗诊断、疾病或死亡预测、投资建议、法律建议，也不要声称能改变命运；涉及健康和财务时只给一般性生活提醒，并明确说明仅供参考。';
 
 let aiState = { abort: null, ctx: null };
 
+function readStorage(key) {
+  try { return localStorage.getItem(key) || ''; } catch (e) { return ''; }
+}
+
 function getAiCfg() {
   return {
-    base: (localStorage.getItem('llm_base') || AI_DEFAULT_BASE).trim(),
-    key: (localStorage.getItem('llm_key') || '').trim(),
-    model: (localStorage.getItem('llm_model') || AI_DEFAULT_MODEL).trim()
+    base: (readStorage('llm_base') || AI_DEFAULT_BASE).trim(),
+    key: readStorage('llm_key').trim(),
+    model: (readStorage('llm_model') || AI_DEFAULT_MODEL).trim()
   };
 }
 
@@ -1109,8 +1178,8 @@ function buildAiPrompt(ctx) {
     const y = new Date().getFullYear();
     const pt = chartData.points.find(function (p) { return p.year === y; }) || chartData.points[chartData.points.length - 1];
     if (pt) {
-      scoreLine = '【今年运势评分】综合 ' + pt.overall + '；事业 ' + pt.career + '；姻缘 ' + pt.love +
-        '；财运 ' + pt.wealth + '；健康 ' + pt.health + '（满分 100）\n';
+      scoreLine = '【娱乐性参考分（非科学测算）】综合 ' + pt.overall + '；事业 ' + pt.career + '；姻缘 ' + pt.love +
+        '；财运 ' + pt.wealth + '；健康 ' + pt.health + '（满分 100，仅供娱乐）\n';
     }
   }
 
@@ -1141,15 +1210,18 @@ function aiFortune(ctx) {
 
   if (!cfg.key) {
     el.innerHTML = ctx.localHtml;
+    el.setAttribute('aria-busy', 'false');
     setAiBadge('本地解读', '');
     setAiNote('未配置 AI 接口，当前为本地模板解读。点击「⚙ AI 配置」填入 API Key 后，此板块将由大模型实时生成。');
     regen.style.display = 'none';
     return;
   }
 
-  el.innerHTML = '<div class="ai-loading"><span class="ai-spin"></span>AI 正在推演命盘（约 3-10 秒）…</div>';
+  // 不替换本地解读：先生成的内容保持可读，AI 结果回来后再替换
+  el.innerHTML = ctx.localHtml;
+  el.setAttribute('aria-busy', 'true');
   setAiBadge('AI 生成中…', '');
-  setAiNote('');
+  setAiNote('AI 正在推演命盘，当前先显示本地模板解读，完成后会自动替换。');
   regen.style.display = 'none';
 
   const ctrl = new AbortController();
@@ -1184,9 +1256,11 @@ function aiFortune(ctx) {
     const content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
     if (!content) throw new Error('返回内容为空');
     aiState.abort = null;
+    el.setAttribute('aria-busy', 'false');
     el.innerHTML = content.split(/\n+/).map(function (s) { return s.trim(); }).filter(Boolean)
       .map(function (p) { return '<p>' + escHtml(p) + '</p>'; }).join('');
     setAiBadge('✦ AI 生成 · ' + cfg.model, 'ai-badge-ok');
+    setAiNote('AI 生成内容仅供娱乐，不构成医疗、投资或法律建议。');
     regen.style.display = '';
   }).catch(function (err) {
     clearTimeout(timer);
@@ -1201,6 +1275,7 @@ function aiFortune(ctx) {
       reason = 'AI 调用失败（' + ((err && (err.message || err)) || '未知错误') + '）';
     }
     el.innerHTML = ctx.localHtml;
+    el.setAttribute('aria-busy', 'false');
     setAiBadge('本地解读 · AI 降级', 'ai-badge-warn');
     setAiNote(reason + '，已自动降级为本地模板解读。可点击「重新生成」重试。');
     regen.style.display = '';
@@ -1224,37 +1299,83 @@ function toggleAiConfig() {
   }
 }
 
+function showAiConfig() {
+  const box = document.getElementById('aiConfig');
+  box.style.display = 'block';
+  box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 function saveAiConfig() {
   const base = document.getElementById('cfgBase').value.trim() || AI_DEFAULT_BASE;
   const key = document.getElementById('cfgKey').value.trim();
   const model = document.getElementById('cfgModel').value.trim() || AI_DEFAULT_MODEL;
-  localStorage.setItem('llm_base', base);
-  localStorage.setItem('llm_key', key);
-  localStorage.setItem('llm_model', model);
-  document.getElementById('aiCfgMsg').textContent = aiState.ctx ? '已保存，正在用 AI 重新生成…' : '已保存（仅存本机浏览器）';
+  let msg = aiState.ctx ? '已保存，正在用 AI 重新生成…' : '已保存（仅存本机浏览器）';
+  try {
+    localStorage.setItem('llm_base', base);
+    localStorage.setItem('llm_key', key);
+    localStorage.setItem('llm_model', model);
+  } catch (e) {
+    msg = '浏览器禁止本地存储，Key 只在本次会话有效';
+  }
+  document.getElementById('aiCfgMsg').textContent = msg;
+  if (aiState.ctx) aiFortune(aiState.ctx);
+}
+
+function clearAiConfig() {
+  try {
+    localStorage.removeItem('llm_key');
+    localStorage.removeItem('llm_base');
+    localStorage.removeItem('llm_model');
+  } catch (e) {}
+  document.getElementById('cfgKey').value = '';
+  document.getElementById('aiCfgMsg').textContent = '已清除本机保存的 Key';
   if (aiState.ctx) aiFortune(aiState.ctx);
 }
 /* ================= /AI 综合解读 ================= */
 
 function calculate() {
+  const errEl = document.getElementById('formError');
+  errEl.textContent = '';
   const dateStr = document.getElementById('birthDate').value;
-  if (!dateStr) { alert('请选择出生日期'); return; }
+  if (!dateStr) { errEl.textContent = '请选择出生日期'; return; }
 
   const [y, m, d] = dateStr.split('-').map(Number);
+  const probe = new Date(y, m - 1, d);
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d) ||
+      probe.getFullYear() !== y || probe.getMonth() !== m - 1 || probe.getDate() !== d) {
+    errEl.textContent = '日期无法解析，请检查年月日';
+    return;
+  }
+  if (probe > new Date()) {
+    errEl.textContent = '暂不支持未来日期，请选择已过去的出生日期';
+    return;
+  }
+
   const hourIdx = parseInt(document.getElementById('birthHour').value);
   const gender = parseInt(document.getElementById('gender').value);
 
-  const solar = Solar.fromYmdHms(y, m, d, HOUR_MAP[hourIdx], 0, 0);
-  const lunar = solar.getLunar();
-  const ec = lunar.getEightChar();
+  let solar, lunar, ec;
+  try {
+    solar = Solar.fromYmdHms(y, m, d, HOUR_MAP[hourIdx], 0, 0);
+    lunar = solar.getLunar();
+    ec = lunar.getEightChar();
+  } catch (e) {
+    errEl.textContent = '这套日期/时辰无法排盘，请换一个日期试试';
+    return;
+  }
   const dayWx = GAN_WX[ec.getDayGan()] || '土';
   const counts = countWuxing(ec);
 
   // Build chart data
   chartData = buildChartData(ec, gender, y);
   initLegend();
-  drawChart();
+  renderChartTable(chartData.points);
   initChartHover();
+
+  // 先显示结果容器，再画图；否则 canvas 在 display:none 下宽度为 0，首屏会白屏
+  const results = document.getElementById('results');
+  results.style.display = 'block';
+  requestAnimationFrame(function () { drawChart(); });
 
   // 大运
   renderDayun(chartData.daYunInfo, y);
@@ -1330,8 +1451,6 @@ function calculate() {
   });
 
   // Show
-  const results = document.getElementById('results');
-  results.style.display = 'block';
   results.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 

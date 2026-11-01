@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">天命玄机 · AI 命理</title>
+  <desc id="desc">深色金调的单页 AI 命理 Demo 封面，标题为天命玄机，副标题为八字排盘 + 大模型解读。</desc>
+  <defs>
+    <radialGradient id="glow" cx="72%" cy="26%" r="55%">
+      <stop offset="0" stop-color="#f0c27f" stop-opacity=".20"/>
+      <stop offset="1" stop-color="#0a0a12" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f0c27f"/>
+      <stop offset=".55" stop-color="#e8d5b7"/>
+      <stop offset="1" stop-color="#c4973a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="640" fill="#0a0a12"/>
+  <rect width="1280" height="640" fill="url(#glow)"/>
+  <g opacity=".35" stroke="#e4c48b" fill="none">
+    <circle cx="1010" cy="190" r="120"/>
+    <circle cx="1010" cy="190" r="168" stroke-dasharray="3 8"/>
+    <circle cx="1010" cy="190" r="216" stroke-dasharray="1 10"/>
+    <path d="M1010 34v312M854 190h312" stroke-dasharray="2 10"/>
+  </g>
+  <g opacity=".5" fill="#e4c48b">
+    <circle cx="1010" cy="74" r="4"/><circle cx="1126" cy="190" r="4"/>
+    <circle cx="1010" cy="306" r="4"/><circle cx="894" cy="190" r="4"/>
+  </g>
+  <text x="82" y="168" fill="#8a7a66" font-family="'Noto Sans SC','PingFang SC',sans-serif" font-size="18" letter-spacing="6">VIBE CODING · SINGLE PAGE DEMO</text>
+  <text x="78" y="272" fill="url(#gold)" font-family="'Noto Serif SC','STSong',serif" font-size="82" font-weight="700" letter-spacing="10">天命玄机</text>
+  <text x="82" y="330" fill="#e8d5b7" font-family="'Noto Sans SC','PingFang SC',sans-serif" font-size="30" letter-spacing="4">AI 命理 · 八字排盘 + 大模型解读</text>
+  <text x="82" y="382" fill="#a08d75" font-family="'Noto Sans SC','PingFang SC',sans-serif" font-size="20" letter-spacing="2">输入生辰 → 排盘与五行 → 本地解读 → 可选 LLM 综合解读 → 超时自动降级</text>
+  <g font-family="'Noto Sans SC','PingFang SC',sans-serif" font-size="16">
+    <rect x="82" y="430" width="170" height="40" rx="20" fill="#e4c48b" fill-opacity=".08" stroke="#e4c48b" stroke-opacity=".25"/>
+    <text x="167" y="456" text-anchor="middle" fill="#d4a76a">lunar-javascript</text>
+    <rect x="266" y="430" width="156" height="40" rx="20" fill="#e4c48b" fill-opacity=".08" stroke="#e4c48b" stroke-opacity=".25"/>
+    <text x="344" y="456" text-anchor="middle" fill="#d4a76a">DeepSeek 可选</text>
+    <rect x="436" y="430" width="150" height="40" rx="20" fill="#e4c48b" fill-opacity=".08" stroke="#e4c48b" stroke-opacity=".25"/>
+    <text x="511" y="456" text-anchor="middle" fill="#d4a76a">本地兜底</text>
+  </g>
+  <text x="82" y="558" fill="#6f6252" font-family="'Noto Sans SC','PingFang SC',sans-serif" font-size="16">仅供娱乐 · 不构成医疗、投资或法律建议</text>
+</svg>
